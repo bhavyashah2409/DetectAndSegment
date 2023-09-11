@@ -1,4 +1,5 @@
-from Detection import DetectShips
+from DetectionDS import DetectShipsUsingDS
+from DetectionYOLO import DetectShipsUsingYOLO
 from Segmentation import SegmentSea
 
 class WrapperClass:
