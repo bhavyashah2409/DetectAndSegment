@@ -13,7 +13,7 @@ class TrackShipsUsingDS:
         self.model = YOLO(self.best)
 
     def infer(self, image):
-        detections = self.model.predict(frame)[0]
+        detections = self.model.predict(image)[0]
         classes = detections.names
         detections = detections.boxes
         xyxy = detections.xyxy.cpu().numpy().tolist()
@@ -23,7 +23,7 @@ class TrackShipsUsingDS:
         for (xmin, ymin, xmax, ymax), p, c in zip(xyxy, conf, cls):
             if p > self.conf:
                 results.append([[xmin, ymin, xmax - xmin, ymax - ymin], p, c])
-        tracks = self.tracker.update_tracks(results, frame=frame)
+        tracks = self.tracker.update_tracks(results, frame=image)
         results = []
         for track in tracks:
             if track.is_confirmed():
@@ -53,4 +53,4 @@ if __name__ == '__main__':
                 frame = cv.putText(frame, f'ID: {i}, {c}: {p}', (xmax, ymax - 10), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 1)
         cv.imshow('Frame', frame)
         cv.waitKey(1)
-cap.release()
+    cap.release()
