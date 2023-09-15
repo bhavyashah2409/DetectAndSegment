@@ -24,11 +24,11 @@ class WrapperClass:
         return bboxes, mask
 
 if __name__ == '__main__':
-    VIDEO = r"C:\Users\aicpl\ShipsDatasets\VideoDataset\videos\video_24.mp4"
+    VIDEO = r"C:\Users\aicpl\ShipsDatasets\VideoDataset\videos\video_1.mp4"
     cap = cv.VideoCapture(VIDEO)
     det_weights = 'yolov8l.pt'
     seg_weights = "wasr_rn101.pth"
-    model = WrapperClass(det_weights, seg_weights, 'segment')
+    model = WrapperClass(det_weights, seg_weights, 'both')
     start = time.time()
     while True:
         ret, frame = cap.read()
@@ -38,13 +38,15 @@ if __name__ == '__main__':
         end = time.time()
         print(f'FPS: {1.0 / (end - start)}')
         start = time.time()
+        out = frame.copy()
         if model.use == 'detect' or model.use == 'both':
-            for i, xmin, ymin, xmax, ymax, p, c in bboxes:
+            for xmin, ymin, xmax, ymax, i, c in bboxes:
                 if c == 'boat':
-                    frame = cv.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
-                    frame = cv.putText(frame, f'ID: {i}, {c}: {p}', (xmax, ymax - 10), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 1)
-            cv.imshow('Detection', frame)
+                    out = cv.rectangle(out, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+                    out = cv.putText(out, f'ID: {i}, {c}', (xmin, ymin + 20), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 1)
+            cv.imshow('Detection', out)
         if model.use == 'segment' or model.use == 'both':
-            cv.imshow('Segmentation', mask)
+            out = cv.addWeighted(mask, 0.3, out, 0.7, 0.0)
+            cv.imshow('Segmentation', out)
         cv.waitKey(1)
     cap.release()

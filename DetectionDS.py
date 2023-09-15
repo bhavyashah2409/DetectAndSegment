@@ -1,56 +1,43 @@
 import cv2 as cv
 from ultralytics import YOLO
-from deep_sort_realtime.deepsort_tracker import DeepSort
+from deep_sort_pytorch.deep_sort import DeepSort
 
 class TrackShipsUsingDS:
-    def __init__(self, best='best.pt', conf=0.4, max_iou_distance=0.5, max_age=60, n_init=5):
+    def __init__(self, best='best.pt', min_conf=0.3, max_iou_distance=0.5, max_age=70, n_init=5):
         self.best = best
-        self.conf = conf
+        self.min_conf = min_conf
         self.max_iou_distance = max_iou_distance
         self.max_age = max_age
         self.n_init = n_init
-        self.tracker = DeepSort(max_age=self.max_age, max_iou_distance=self.max_iou_distance, n_init=self.n_init)
+        self.tracker = DeepSort(model_path=r'deep_sort_pytorch\deep_sort\deep\checkpoint\ckpt.t7', max_dist=0.2, min_confidence=self.min_conf, nms_max_overlap=0.5, max_iou_distance=self.max_iou_distance, max_age=self.max_age, n_init=self.n_init, nn_budget=100, use_cuda=True)
         self.model = YOLO(self.best)
 
     def infer(self, image):
-        detections = self.model.predict(image)[0]
-        classes = detections.names
-        detections = detections.boxes
-        xyxy = detections.xyxy.cpu().numpy().tolist()
-        cls = detections.cls.cpu().numpy().tolist()
-        conf = detections.conf.cpu().numpy().tolist()
+        preds = self.model.predict(image)[0].cpu()
+        classes = preds.names
+        preds = preds.boxes
+        xywhs = preds.xywh
+        confs = preds.conf
+        oids = preds.cls
+        final = self.tracker.update(xywhs, confs, oids, image)
         results = []
-        for (xmin, ymin, xmax, ymax), p, c in zip(xyxy, conf, cls):
-            if p > self.conf:
-                results.append([[xmin, ymin, xmax - xmin, ymax - ymin], p, c])
-        tracks = self.tracker.update_tracks(results, frame=image)
-        results = []
-        for track in tracks:
-            if track.is_confirmed():
-                i = track.track_id
-                p = track.get_det_conf()
-                c = track.get_det_class()
-                xmin, ymin, xmax, ymax = track.to_ltrb(orig=True)
-                if p is not None:
-                    results.append([i, int(xmin), int(ymin), int(xmax), int(ymax), round(p * 100, 2), classes[c]])
-                else:
-                    results.append([i, int(xmin), int(ymin), int(xmax), int(ymax), 0.0, classes[c]])
+        for xmin, ymin, xmax, ymax, i, c in final:
+            results.append([xmin, ymin, xmax, ymax, i, classes[c]])
         return results
 
 if __name__ == '__main__':
-    VIDEO = r"C:\Users\aicpl\ShipsDatasets\VideoDataset\videos\video_24.mp4"
-    cap = cv.VideoCapture(VIDEO)
+    VIDEO = r"C:\Users\aicpl\ShipsDatasets\VideoDataset\videos\video_1.mp4"
     WEIGHTS = 'yolov8l.pt'
+    cap = cv.VideoCapture(VIDEO)
     model = TrackShipsUsingDS(WEIGHTS)
     while True:
         ret, frame = cap.read()
         if not ret:
             break
         results = model.infer(frame)
-        for i, xmin, ymin, xmax, ymax, p, c in results:
-            if c == 'boat':
-                frame = cv.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
-                frame = cv.putText(frame, f'ID: {i}, {c}: {p}', (xmax, ymax - 10), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 1)
+        for xmin, ymin, xmax, ymax, i, c in results:
+            frame = cv.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 2)
+            frame = cv.putText(frame, f'ID: {i}, {c}', (xmin, ymin + 20), cv.FONT_HERSHEY_PLAIN, 1, (0, 0, 255), 1)
         cv.imshow('Frame', frame)
         cv.waitKey(1)
     cap.release()
