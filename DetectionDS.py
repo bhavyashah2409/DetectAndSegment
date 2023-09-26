@@ -3,7 +3,7 @@ from ultralytics import YOLO
 from deep_sort_pytorch.deep_sort import DeepSort
 
 class TrackShipsUsingDS:
-    def __init__(self, best='best.pt', min_conf=0.3, max_iou_distance=0.5, max_age=70, n_init=5):
+    def __init__(self, best='best.pt', min_conf=0.35, max_iou_distance=0.4, max_age=100, n_init=5):
         self.best = best
         self.min_conf = min_conf
         self.max_iou_distance = max_iou_distance

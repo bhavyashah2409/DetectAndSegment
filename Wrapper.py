@@ -5,11 +5,14 @@ from DetectionYOLO import TrackShipsUsingYOLO
 from Segmentation import SegmentSea
 
 class WrapperClass:
-    def __init__(self, det_path, seg_path, use='both'):
+    def __init__(self, det_path, seg_path, det_model='yolo', use='both'):
         self.det_path = det_path
         self.seg_path = seg_path
         self.use = use
-        self.detection_model = TrackShipsUsingDS(self.det_path)
+        if self.det_model == 'ds':
+            self.detection_model = TrackShipsUsingDS(self.det_path)
+        else:
+            self.detection_model = TrackShipsUsingYOLO(self.det_path)
         self.segmentation_model = SegmentSea(self.seg_path)
 
     def infer(self, image):
@@ -28,7 +31,7 @@ if __name__ == '__main__':
     cap = cv.VideoCapture(VIDEO)
     det_weights = 'yolov8l.pt'
     seg_weights = "wasr_rn101.pth"
-    model = WrapperClass(det_weights, seg_weights, 'both')
+    model = WrapperClass(det_weights, seg_weights, 'yolo', 'detect')
     start = time.time()
     while True:
         ret, frame = cap.read()

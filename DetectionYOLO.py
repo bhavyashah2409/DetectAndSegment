@@ -2,14 +2,14 @@ import cv2 as cv
 from ultralytics import YOLO
 
 class TrackShipsUsingYOLO:
-    def __init__(self, best='best.pt', min_conf=0.3, max_iou=0.7):
+    def __init__(self, best='best.pt', min_conf=0.35, max_iou=0.5):
         self.best = best
         self.min_conf = min_conf
         self.max_iou = max_iou
         self.model = YOLO(self.best)
 
     def infer(self, image):
-        results = model.track(frame, persist=True, conf=self.min_conf, max_iou=self.iou)[0].cpu()
+        results = self.model.track(image, persist=True, conf=self.min_conf, iou=self.max_iou)[0].cpu()
         classes = results.names
         bboxes = results.boxes.xyxy.cpu().numpy().tolist()
         cls = results.boxes.cls.cpu().numpy().tolist()
@@ -19,7 +19,8 @@ class TrackShipsUsingYOLO:
             ids = ids.cpu().numpy().tolist()
         else:
             ids = [0 for _ in bboxes]
-        for i, (xmin, ymin, xmax, ymax), p, c in zip(ids, xyxy, conf, cls, ids):
+        results = []
+        for i, (xmin, ymin, xmax, ymax), p, c in zip(ids, bboxes, conf, cls):
             results.append([xmin, ymin, xmax, ymax, i, classes[c]])
         return results
 
