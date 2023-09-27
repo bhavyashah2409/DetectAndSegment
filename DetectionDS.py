@@ -3,17 +3,17 @@ from ultralytics import YOLO
 from deep_sort_pytorch.deep_sort import DeepSort
 
 class TrackShipsUsingDS:
-    def __init__(self, best='best.pt', min_conf=0.35, max_iou_distance=0.4, max_age=100, n_init=5):
+    def __init__(self, best='best.pt', min_conf=0.35, max_iou=0.4, max_age=70, n_init=5):
         self.best = best
         self.min_conf = min_conf
-        self.max_iou_distance = max_iou_distance
+        self.max_iou = max_iou
         self.max_age = max_age
         self.n_init = n_init
-        self.tracker = DeepSort(model_path=r'deep_sort_pytorch\deep_sort\deep\checkpoint\ckpt.t7', max_dist=0.2, min_confidence=self.min_conf, nms_max_overlap=0.5, max_iou_distance=self.max_iou_distance, max_age=self.max_age, n_init=self.n_init, nn_budget=100, use_cuda=True)
+        self.tracker = DeepSort(model_path=r'deep_sort_pytorch\deep_sort\deep\checkpoint\ckpt.t7', max_dist=0.2, min_confidence=self.min_conf, nms_max_overlap=0.5, max_iou_distance=self.max_iou, max_age=self.max_age, n_init=self.n_init, nn_budget=100, use_cuda=True)
         self.model = YOLO(self.best)
 
     def infer(self, image):
-        preds = self.model.predict(image)[0].cpu()
+        preds = self.model.predict(image, conf=self.min_conf)[0].cpu()
         classes = preds.names
         preds = preds.boxes
         xywhs = preds.xywh
